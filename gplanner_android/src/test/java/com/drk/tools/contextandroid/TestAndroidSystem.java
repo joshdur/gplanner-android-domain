@@ -1,7 +1,6 @@
 package com.drk.tools.contextandroid;
 
-import com.drk.tools.contextandroid.domain.ScreenInfo;
-import com.drk.tools.contextandroid.domain.ViewInfo;
+import com.drk.tools.contextandroid.domain.*;
 
 public class TestAndroidSystem implements AndroidSystem {
     @Override
@@ -15,6 +14,11 @@ public class TestAndroidSystem implements AndroidSystem {
     }
 
     @Override
+    public void checkIntent(IntentData intentData) {
+        System.out.print("checkIntent - ");
+    }
+
+    @Override
     public void checkScreen(ScreenInfo screenInfo) {
         System.out.print("checkScreen - ");
     }
@@ -25,12 +29,17 @@ public class TestAndroidSystem implements AndroidSystem {
     }
 
     @Override
-    public void checkText(ViewInfo viewInfo, String text) {
+    public void checkElementState(ViewInfo viewInfo, ElementState elementState) {
+        System.out.print("checkElementState - ");
+    }
+
+    @Override
+    public void checkText(ViewInfo viewInfo, ElementText text) {
         System.out.print("checkText - ");
     }
 
     @Override
-    public void inputText(ViewInfo viewInfo, String text) {
+    public void inputText(ViewInfo viewInfo, ElementInputText text) {
         System.out.print("inputText - ");
     }
 

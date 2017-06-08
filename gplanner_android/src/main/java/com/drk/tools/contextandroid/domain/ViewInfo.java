@@ -4,30 +4,78 @@ public class ViewInfo {
 
     public final int id;
     public final String text;
-    public final NavigationInfo navigationInfo;
+    public final String hint;
+    public final Action clickAction;
+    public final Action imeOptionsClickAction;
+    public final ViewInfo showsAfter;
 
     private ViewInfo(Builder builder) {
         this.id = builder.id;
         this.text = builder.text;
-        this.navigationInfo = builder.navigationInfo;
+        this.hint = builder.hint;
+        this.clickAction = builder.action;
+        this.imeOptionsClickAction = builder.imeOptionsClickAction;
+        this.showsAfter = builder.showsAfter;
+    }
+
+    public boolean matches(ViewInfo viewInfo) {
+        if (id != -1 && viewInfo.id != -1) {
+            return id == viewInfo.id;
+        }
+        if (text != null && viewInfo.text != null) {
+            return text.equals(viewInfo.text);
+        }
+        if (hint != null && viewInfo.hint != null) {
+            return hint.equals(viewInfo.hint);
+        }
+        return false;
     }
 
     public boolean hasClickDefined() {
-        return navigationInfo != null;
+        return clickAction != null;
     }
 
-    public static Builder builder(int id) {
-        return new Builder(id);
+    public boolean hasImeOptionsClickDefined() {
+        return imeOptionsClickAction != null;
+    }
+
+    public boolean dependsOnView() {
+        return showsAfter != null;
+    }
+
+    public boolean hasId() {
+        return id != -1;
+    }
+
+    public static ViewInfo of(int id) {
+        return builder().id(id).build();
+    }
+
+    public static ViewInfo of(int id, ViewInfo showsAfter) {
+        return builder().id(id).showsAfter(showsAfter).build();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("ViewInfo with id:%d, text:%s, hint:%s", id, text, hint);
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public static class Builder {
 
-        private final int id;
+        private int id = -1;
         private String text;
-        private NavigationInfo navigationInfo;
+        private String hint;
+        private Action action;
+        private Action imeOptionsClickAction;
+        private ViewInfo showsAfter;
 
-        Builder(int id) {
+        public Builder id(int id) {
             this.id = id;
+            return this;
         }
 
         public Builder text(String text) {
@@ -35,8 +83,23 @@ public class ViewInfo {
             return this;
         }
 
-        public Builder clickActionInfo(NavigationInfo navigationInfo) {
-            this.navigationInfo = navigationInfo;
+        public Builder hint(String hint) {
+            this.hint = hint;
+            return this;
+        }
+
+        public Builder click(Action action) {
+            this.action = action;
+            return this;
+        }
+
+        public Builder imeOptionsClickAction(Action action) {
+            this.imeOptionsClickAction = action;
+            return this;
+        }
+
+        public Builder showsAfter(ViewInfo viewInfo) {
+            this.showsAfter = viewInfo;
             return this;
         }
 

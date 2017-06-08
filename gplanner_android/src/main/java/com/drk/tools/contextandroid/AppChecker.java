@@ -1,8 +1,6 @@
 package com.drk.tools.contextandroid;
 
-import com.drk.tools.contextandroid.domain.AndroidViewInfo;
-import com.drk.tools.contextandroid.domain.ElementText;
-import com.drk.tools.contextandroid.domain.Scenario;
+import com.drk.tools.contextandroid.domain.*;
 import com.drk.tools.contextandroid.planner.AndroidOperatorsContext;
 import com.drk.tools.contextandroid.planner.domain.*;
 import com.drk.tools.contextandroid.planner.variables.Bool;
@@ -14,6 +12,7 @@ import com.drk.tools.gplannercore.core.state.State;
 import com.drk.tools.gplannercore.core.state.StateBuilder;
 import com.drk.tools.gplannercore.planner.PlanStream;
 import com.drk.tools.gplannercore.planner.Planner;
+import com.drk.tools.gplannercore.planner.search.forward.SimpleForward;
 import com.drk.tools.gplannercore.planner.search.graphplan.GraphPlan;
 import com.drk.tools.gplannercore.planner.search.hsp.HSP;
 import com.drk.tools.gplannercore.planner.search.hsp.heuristic.GraphPlanScore;
@@ -29,11 +28,13 @@ public class AppChecker {
     private final AndroidViewInfo androidViewInfo;
     private final AndroidSystem androidSystem;
     private final boolean debug;
+    private final InfoBuilder infoBuilder;
 
     public AppChecker(AndroidViewInfo androidViewInfo, AndroidSystem androidSystem, boolean debug) {
         this.androidViewInfo = androidViewInfo;
         this.androidSystem = androidSystem;
         this.debug = debug;
+        this.infoBuilder = new InfoBuilder(androidViewInfo, debug);
     }
 
     public AppChecker(AndroidViewInfo androidViewInfo, AndroidSystem androidSystem) {
@@ -53,6 +54,9 @@ public class AppChecker {
     }
 
     private void runPaths(Context context, List<Plan> paths) throws Throwable {
+        if(paths.isEmpty()){
+            throw new IllegalStateException("There is no paths for defined scenario");
+        }
         for (Plan plan : paths) {
             context.execute(plan);
         }
@@ -77,13 +81,13 @@ public class AppChecker {
         Bundle bundle = new Bundle();
         bundle.set(AndroidSystem.class.toString(), androidSystem);
         bundle.set(AndroidViewInfo.class.toString(), androidViewInfo);
-        bundle.set(ActionInfo.class.toString(), InfoBuilder.getActionInfo(androidViewInfo));
-        bundle.set(BackInfo.class.toString(), InfoBuilder.getBackInfo(androidViewInfo));
-        bundle.set(HierarchyInfo.class.toString(), InfoBuilder.getHierarchyInfo(androidViewInfo));
-        bundle.set(InitInfo.class.toString(), InfoBuilder.getInitInfo(androidViewInfo));
-        bundle.set(TextInfo.class.toString(), InfoBuilder.getTextInfo(androidViewInfo, scenario));
+        bundle.set(ActionInfo.class.toString(), infoBuilder.getActionInfo());
+        bundle.set(BackInfo.class.toString(), infoBuilder.getBackInfo());
+        bundle.set(HierarchyInfo.class.toString(), infoBuilder.getHierarchyInfo());
+        bundle.set(InitInfo.class.toString(), infoBuilder.getInitInfo());
+        bundle.set(TextInfo.class.toString(), infoBuilder.getTextInfo(scenario));
+        bundle.set(ElementStateInfo.class.toString(), infoBuilder.getElementStateInfo(scenario));
         bundle.set(SearchInfo.class.toString(), new SearchInfo(debug));
-        bundle.set(ExecutionInfo.class.toString(), new ExecutionInfo());
         return bundle;
     }
 
@@ -93,27 +97,32 @@ public class AppChecker {
         builder.set(mockPending, scenario.shouldMock() ? Bool.TRUE : Bool.FALSE);
         builder.set(isSearchFinished, Bool.FALSE);
         builder.set(screenNavigationPending, Bool.FALSE);
+        builder.set(launchIntentPending, Bool.FALSE);
         return builder.build();
     }
 
     private State finalState(Scenario scenario) {
         StateBuilder builder = stateBuilder();
         for (ElementText elementText : scenario.textToCheck) {
-            builder.set(elementTextChecked, androidViewInfo.findElementWithId(elementText.resId));
+            builder.set(elementTextChecked, androidViewInfo.findElementWithViewInfo(elementText.viewInfo));
         }
-        for (ElementText elementText : scenario.textToInput) {
-            builder.set(elementTextSet, androidViewInfo.findElementWithId(elementText.resId));
+        for (ElementInputText elementText : scenario.textToInput) {
+            builder.set(elementTextSet, androidViewInfo.findElementWithViewInfo(elementText.viewInfo));
         }
         for (String screenName : scenario.ats) {
             builder.set(screenChecked, androidViewInfo.findScreenByName(screenName));
         }
-        for (int resId : scenario.clickeds) {
-            builder.set(elementClicked, androidViewInfo.findElementWithId(resId));
+        for (ViewInfo info : scenario.clickeds) {
+            builder.set(elementClicked, androidViewInfo.findElementWithViewInfo(info));
+        }
+        for(ElementState elementState : scenario.elementStates) {
+            builder.set(elementStateChecked, androidViewInfo.findElementWithViewInfo(elementState.info));
         }
         if (scenario.shouldMock()) {
             builder.set(mocked, androidViewInfo.findMockByEnum(scenario.mock));
         }
         builder.set(isSearchFinished, Bool.TRUE);
+        builder.set(launchIntentPending, Bool.FALSE);
         return builder.build();
     }
 
@@ -122,6 +131,7 @@ public class AppChecker {
     }
 
     private Searcher buildSearcher() {
+       // return new SimpleForward(true);
         return new GraphPlan(new HSP(new GraphPlanScore()));
     }
 }
